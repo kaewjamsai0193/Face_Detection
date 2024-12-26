@@ -1883,6 +1883,7 @@
   },
   "projectFileDependencyGroups": {
     "net8.0-windows7.0": [
+      "Emgu.CV.Bitmap >= 4.9.0.5494",
       "Emgu.CV.UI >= 4.9.0.5494",
       "Emgu.CV.runtime.windows >= 4.9.0.5494"
     ]
@@ -1937,6 +1938,10 @@
       "net8.0-windows7.0": {
         "targetAlias": "net8.0-windows",
         "dependencies": {
+          "Emgu.CV.Bitmap": {
+            "target": "Package",
+            "version": "[4.9.0.5494, )"
+          },
           "Emgu.CV.UI": {
             "target": "Package",
             "version": "[4.9.0.5494, )"

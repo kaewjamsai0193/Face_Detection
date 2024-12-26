@@ -41,21 +41,33 @@
             camStatus = new Label();
             label2 = new Label();
             label1 = new Label();
+            groupBox2 = new GroupBox();
+            time = new Label();
+            dateset = new Label();
+            label4 = new Label();
+            label3 = new Label();
+            TimeSet = new System.Windows.Forms.Timer(components);
+            date = new System.Windows.Forms.Timer(components);
+            pictureBoxGray = new PictureBox();
+            groupBox3 = new GroupBox();
             groupBoxLive.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)imageBoxLive).BeginInit();
             controlGroup.SuspendLayout();
             groupBox1.SuspendLayout();
+            groupBox2.SuspendLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxGray).BeginInit();
+            groupBox3.SuspendLayout();
             SuspendLayout();
             // 
             // groupBoxLive
             // 
             groupBoxLive.Anchor = AnchorStyles.None;
             groupBoxLive.Controls.Add(imageBoxLive);
-            groupBoxLive.Location = new Point(97, 9);
+            groupBoxLive.Location = new Point(32, 28);
             groupBoxLive.Margin = new Padding(3, 2, 3, 2);
             groupBoxLive.Name = "groupBoxLive";
             groupBoxLive.Padding = new Padding(3, 2, 3, 2);
-            groupBoxLive.Size = new Size(499, 285);
+            groupBoxLive.Size = new Size(443, 256);
             groupBoxLive.TabIndex = 0;
             groupBoxLive.TabStop = false;
             groupBoxLive.Text = "Live view";
@@ -64,10 +76,10 @@
             // 
             imageBoxLive.Anchor = AnchorStyles.None;
             imageBoxLive.FunctionalMode = Emgu.CV.UI.ImageBox.FunctionalModeOption.Minimum;
-            imageBoxLive.Location = new Point(5, 20);
+            imageBoxLive.Location = new Point(6, 16);
             imageBoxLive.Margin = new Padding(3, 2, 3, 2);
             imageBoxLive.Name = "imageBoxLive";
-            imageBoxLive.Size = new Size(488, 261);
+            imageBoxLive.Size = new Size(437, 236);
             imageBoxLive.SizeMode = PictureBoxSizeMode.StretchImage;
             imageBoxLive.TabIndex = 2;
             imageBoxLive.TabStop = false;
@@ -79,18 +91,18 @@
             controlGroup.Controls.Add(FlipHor);
             controlGroup.Controls.Add(Start);
             controlGroup.Controls.Add(Connect);
-            controlGroup.Location = new Point(106, 298);
+            controlGroup.Location = new Point(32, 309);
             controlGroup.Margin = new Padding(3, 2, 3, 2);
             controlGroup.Name = "controlGroup";
             controlGroup.Padding = new Padding(3, 2, 3, 2);
-            controlGroup.Size = new Size(496, 88);
+            controlGroup.Size = new Size(443, 88);
             controlGroup.TabIndex = 1;
             controlGroup.TabStop = false;
             controlGroup.Text = "Control Panel";
             // 
             // FlipVer
             // 
-            FlipVer.Location = new Point(351, 56);
+            FlipVer.Location = new Point(320, 55);
             FlipVer.Margin = new Padding(3, 2, 3, 2);
             FlipVer.Name = "FlipVer";
             FlipVer.Size = new Size(108, 28);
@@ -101,7 +113,7 @@
             // 
             // FlipHor
             // 
-            FlipHor.Location = new Point(351, 20);
+            FlipHor.Location = new Point(320, 20);
             FlipHor.Margin = new Padding(3, 2, 3, 2);
             FlipHor.Name = "FlipHor";
             FlipHor.Size = new Size(108, 31);
@@ -140,11 +152,11 @@
             groupBox1.Controls.Add(camStatus);
             groupBox1.Controls.Add(label2);
             groupBox1.Controls.Add(label1);
-            groupBox1.Location = new Point(106, 385);
+            groupBox1.Location = new Point(32, 421);
             groupBox1.Margin = new Padding(3, 2, 3, 2);
             groupBox1.Name = "groupBox1";
             groupBox1.Padding = new Padding(3, 2, 3, 2);
-            groupBox1.Size = new Size(496, 39);
+            groupBox1.Size = new Size(450, 39);
             groupBox1.TabIndex = 3;
             groupBox1.TabStop = false;
             // 
@@ -182,11 +194,89 @@
             label1.TabIndex = 2;
             label1.Text = "Camara :";
             // 
+            // groupBox2
+            // 
+            groupBox2.Anchor = AnchorStyles.None;
+            groupBox2.Controls.Add(time);
+            groupBox2.Controls.Add(dateset);
+            groupBox2.Controls.Add(label4);
+            groupBox2.Controls.Add(label3);
+            groupBox2.Location = new Point(106, 465);
+            groupBox2.Name = "groupBox2";
+            groupBox2.Size = new Size(496, 32);
+            groupBox2.TabIndex = 4;
+            groupBox2.TabStop = false;
+            // 
+            // time
+            // 
+            time.AutoSize = true;
+            time.Location = new Point(155, 13);
+            time.Name = "time";
+            time.Size = new Size(0, 15);
+            time.TabIndex = 4;
+            // 
+            // dateset
+            // 
+            dateset.AutoSize = true;
+            dateset.Location = new Point(335, 14);
+            dateset.Name = "dateset";
+            dateset.Size = new Size(0, 15);
+            dateset.TabIndex = 3;
+            // 
+            // label4
+            // 
+            label4.AutoSize = true;
+            label4.Location = new Point(292, 14);
+            label4.Name = "label4";
+            label4.Size = new Size(37, 15);
+            label4.TabIndex = 1;
+            label4.Text = "Date :";
+            // 
+            // label3
+            // 
+            label3.AutoSize = true;
+            label3.Location = new Point(116, 14);
+            label3.Name = "label3";
+            label3.Size = new Size(42, 15);
+            label3.TabIndex = 0;
+            label3.Text = "Time : ";
+            // 
+            // TimeSet
+            // 
+            TimeSet.Enabled = true;
+            TimeSet.Interval = 500;
+            TimeSet.Tick += timer1_Tick;
+            // 
+            // date
+            // 
+            date.Enabled = true;
+            date.Interval = 500;
+            // 
+            // pictureBoxGray
+            // 
+            pictureBoxGray.Location = new Point(6, 22);
+            pictureBoxGray.Name = "pictureBoxGray";
+            pictureBoxGray.Size = new Size(194, 145);
+            pictureBoxGray.TabIndex = 5;
+            pictureBoxGray.TabStop = false;
+            // 
+            // groupBox3
+            // 
+            groupBox3.Controls.Add(pictureBoxGray);
+            groupBox3.Location = new Point(488, 28);
+            groupBox3.Name = "groupBox3";
+            groupBox3.Size = new Size(200, 173);
+            groupBox3.TabIndex = 6;
+            groupBox3.TabStop = false;
+            groupBox3.Text = "groupBox3";
+            // 
             // FormMain
             // 
             AutoScaleDimensions = new SizeF(7F, 15F);
             AutoScaleMode = AutoScaleMode.Font;
-            ClientSize = new Size(700, 427);
+            ClientSize = new Size(700, 498);
+            Controls.Add(groupBox3);
+            Controls.Add(groupBox2);
             Controls.Add(groupBox1);
             Controls.Add(controlGroup);
             Controls.Add(groupBoxLive);
@@ -199,6 +289,10 @@
             controlGroup.ResumeLayout(false);
             groupBox1.ResumeLayout(false);
             groupBox1.PerformLayout();
+            groupBox2.ResumeLayout(false);
+            groupBox2.PerformLayout();
+            ((System.ComponentModel.ISupportInitialize)pictureBoxGray).EndInit();
+            groupBox3.ResumeLayout(false);
             ResumeLayout(false);
         }
 
@@ -216,5 +310,14 @@
         private Label recStatus;
         private Label camStatus;
         private Label label2;
+        private GroupBox groupBox2;
+        private Label dateset;
+        private Label label4;
+        private Label label3;
+        private System.Windows.Forms.Timer TimeSet;
+        private Label time;
+        private System.Windows.Forms.Timer date;
+        private PictureBox pictureBoxGray;
+        private GroupBox groupBox3;
     }
 }
