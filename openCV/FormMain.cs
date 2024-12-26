@@ -60,36 +60,55 @@ namespace openCV
                     // Detect faces in the grayscale image
                     var faces = _faceDetector.DetectMultiScale(grayFrame, 1.1, 10, new Size(20, 20));
 
-                    // Draw green rectangles around the detected faces
-                    foreach (var face in faces)
+                    if (faces.Length > 0)
                     {
-                        // Draw green rectangle on the main image (frame)
-                        CvInvoke.Rectangle(_frame, face, new Bgr(Color.Green).MCvScalar, 2); // สีเขียว
+                        // Process the first detected face
+                        var face = faces[0]; // Select the first face for simplicity
 
-                        // Add padding or expand the face region
-                        var padding = 30; // Expand the face region
-                        var extendedFaceRegion = new Rectangle(
-                            Math.Max(0, face.X - padding),
-                            Math.Max(0, face.Y - padding),
-                            Math.Min(_frame.Width - (face.X - padding), face.Width + 2 * padding),
-                            Math.Min(_frame.Height - (face.Y - padding), face.Height + 2 * padding)
-                        );
+                        // Draw a rectangle around the face in the live view
+                        CvInvoke.Rectangle(_frame, face, new Bgr(Color.Red).MCvScalar, 2); // สีแดง
 
-                        // Crop the extended face region from the original frame (in color)
-                        var faceRegion = _frame.ToImage<Bgr, byte>().GetSubRect(extendedFaceRegion);
+                        // Expand the face region (add padding)
+                        var padding = 20; // Adjust padding as needed
+                        int x = Math.Max(0, face.X - padding);
+                        int y = Math.Max(0, face.Y - padding);
+                        int width = Math.Min(_frame.Width - x, face.Width + 2 * padding);
+                        int height = Math.Min(_frame.Height - y, face.Height + 2 * padding);
+                        var extendedFaceRegion = new Rectangle(x, y, width, height);
 
-                        // Resize the cropped face to fit PictureBoxGray
-                        var zoomedFace = faceRegion.Resize(pictureBoxGray.Width, pictureBoxGray.Height, Inter.Linear);
+                        // Crop the extended face region from the grayscale image
+                        var faceRegionGray = grayFrame.GetSubRect(extendedFaceRegion);
 
-                        // Display the zoomed color face in PictureBoxGray
-                        pictureBoxGray.Image = zoomedFace.ToBitmap();
+                        // Resize the cropped grayscale face to fit in the PictureBox
+                        var resizedFaceGray = faceRegionGray.Resize(pictureBoxGray.Width, pictureBoxGray.Height, Inter.Linear);
+
+                        // Display the cropped grayscale face in the PictureBox
+                        pictureBoxGray.Image = resizedFaceGray.ToBitmap();
+                        pictureBoxGray.BackColor = Color.Transparent; // พื้นหลังใสเมื่อมีใบหน้า
+                    }
+                    else
+                    {
+                        // Clear PictureBox if no face is detected
+                        pictureBoxGray.Image = null;
+
+                        // Set background to gray when no face is detected
+                        pictureBoxGray.BackColor = Color.Gray;
                     }
 
-                    // Display the frame with face detection (including green rectangles) in the imageBoxLive
+                    // Update the live view with the rectangles drawn
                     imageBoxLive.Image = _frame;
                 }
             }
         }
+
+
+
+
+
+
+
+
+
 
 
 
