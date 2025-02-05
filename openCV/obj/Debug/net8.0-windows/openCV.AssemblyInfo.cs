@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("openCV")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9ba741a59f559925576888b2b8e8f291345b00f5")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+0f48eed54c161296ed2a152f21c596490b1ca584")]
 [assembly: System.Reflection.AssemblyProductAttribute("openCV")]
 [assembly: System.Reflection.AssemblyTitleAttribute("openCV")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

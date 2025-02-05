@@ -1,25 +1,36 @@
 ﻿
-
-using System.Threading;
 using Emgu.CV;
-using Emgu.CV.CvEnum;
 using Emgu.CV.Structure;
 namespace openCV
 {
     public partial class FormMain : Form
     {
-        private VideoCapture? _videoCapture = null;
-        private Mat? _frame;
-        private CascadeClassifier _faceDetector;
+        private VideoCapture _camera;
+        private VideoWriter _videoWriter;
+        private CascadeClassifier? _faceDetector;
+
+        private bool _isRecording = false;
         private bool isCameraConnected = false;
         private bool isRecord = false;
 
+        private string selectedFolderPath = string.Empty;
         public FormMain()
         {
+            
             InitializeComponent();
-            Image<Bgr, byte> image = new Image<Bgr, byte>(@"Image\Disconnect.jpg");
-            imageBoxLive.Image = image;
 
+            //กำหนดสถานะ status เริ่มต้น
+            SetConnectedStatus("disconnect");
+            SetRecordingStatus("stop");
+
+            snapshotTimer.Tick += (s, e) => SaveSnapshot();
+            Snipshot.CheckedChanged += (s, e) => UpdateSnapshotTimer();
+            sectime.ValueChanged += (s, e) => UpdateSnapshotTimer();
+            
+            Browse.Enabled = false;
+            Recognizer.Enabled = false;
+            Snipshot.Enabled = false;
+            //โหลด model face detection
             try
             {
                 string haarcascadePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "haarcascade_frontalface_default.xml");
@@ -33,161 +44,142 @@ namespace openCV
             {
                 MessageBox.Show($"Error loading Haarcascade model: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+
         }
-        /*
         private void ProcessFrame(object sender, EventArgs e)
         {
-            if (_videoCapture != null && _videoCapture.Ptr != IntPtr.Zero)
+            try
             {
-                bool canCapture = _videoCapture.Retrieve(_frame, 0);
-                if (canCapture)
+                if (_camera != null && _camera.Ptr != IntPtr.Zero)
                 {
-                    imageBoxLive.Image = _frame;
+                    var frame = new Mat();
+                    _camera.Retrieve(frame);
+                    var image = frame.ToImage<Bgr, byte>();
+
+                    // Convert to grayscale and display
+                    var grayImage = image.Convert<Gray, byte>();
+
+                    // Detect faces
+                    if (_faceDetector != null)
+                    {
+                        var faces = _faceDetector.DetectMultiScale(grayImage, 1.1, 10, Size.Empty);
+
+                        foreach (var face in faces)
+                        {
+                            image.Draw(face, new Bgr(Color.Red), 2); // Draw rectangle around face
+                        }
+
+                        // Crop the first detected face and display in grayscale
+                        if (faces.Length > 0)
+                        {
+                            var faceRect = faces[0];
+                            var faceImage = grayImage.Copy(faceRect);
+                            var resizedFaceImage = faceImage.Resize(pictureBoxGray.Width, pictureBoxGray.Height, Emgu.CV.CvEnum.Inter.Linear);
+                            pictureBoxGray.Image = resizedFaceImage.ToBitmap();
+                        }
+                        else
+                        {
+                            pictureBoxGray.Image = null;
+                        }
+
+                        live.Image = image.ToBitmap();
+
+                        if (_isRecording && _videoWriter != null)
+                        {
+                            _videoWriter.Write(frame);
+                        }
+                    }
                 }
             }
-        }
-        */
-        private void ProcessFrame(object sender, EventArgs e)
-        {
-            if (_videoCapture != null && _videoCapture.Ptr != IntPtr.Zero)
+            catch (Exception ex)
             {
-                bool canCapture = _videoCapture.Retrieve(_frame, 0);
-                if (canCapture)
-                {
-                    // Convert the frame to grayscale for face detection
-                    var grayFrame = _frame.ToImage<Gray, byte>();
-
-                    // Detect faces in the grayscale image
-                    var faces = _faceDetector.DetectMultiScale(grayFrame, 1.1, 10, new Size(20, 20));
-
-                    if (faces.Length > 0)
-                    {
-                        // Process the first detected face
-                        var face = faces[0]; // Select the first face for simplicity
-
-                        // Draw a rectangle around the face in the live view
-                        CvInvoke.Rectangle(_frame, face, new Bgr(Color.Red).MCvScalar, 2); // สีแดง
-
-                        // Expand the face region (add padding)
-                        var padding = 20; // Adjust padding as needed
-                        int x = Math.Max(0, face.X - padding);
-                        int y = Math.Max(0, face.Y - padding);
-                        int width = Math.Min(_frame.Width - x, face.Width + 2 * padding);
-                        int height = Math.Min(_frame.Height - y, face.Height + 2 * padding);
-                        var extendedFaceRegion = new Rectangle(x, y, width, height);
-
-                        // Crop the extended face region from the grayscale image
-                        var faceRegionGray = grayFrame.GetSubRect(extendedFaceRegion);
-
-                        // Resize the cropped grayscale face to fit in the PictureBox
-                        var resizedFaceGray = faceRegionGray.Resize(pictureBoxGray.Width, pictureBoxGray.Height, Inter.Linear);
-
-                        // Display the cropped grayscale face in the PictureBox
-                        pictureBoxGray.Image = resizedFaceGray.ToBitmap();
-                        pictureBoxGray.BackColor = Color.Transparent; // พื้นหลังใสเมื่อมีใบหน้า
-                    }
-                    else
-                    {
-                        // Clear PictureBox if no face is detected
-                        pictureBoxGray.Image = null;
-
-                        // Set background to gray when no face is detected
-                        pictureBoxGray.BackColor = Color.Gray;
-                    }
-
-                    // Update the live view with the rectangles drawn
-                    imageBoxLive.Image = _frame;
-                }
+                MessageBox.Show($"Error processing frame: {ex.Message}", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
         }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        #region Button
         private async void Connect_Click(object sender, EventArgs e)
         {
             try
             {
                 if (!isCameraConnected)
                 {
-                    camStatus.Text = "Waiting...";
-                    await Task.Delay(500);
+                    camStatus.Text = "WAITING...";
+                    camStatus.BackColor = Color.Cyan;
+                    camStatus.ForeColor = Color.Black;
+
                     await Task.Run(() =>
                     {
-                        _videoCapture = new VideoCapture();
-                        _videoCapture.ImageGrabbed += ProcessFrame;
-                        _frame = new Mat();
+                        _camera = new VideoCapture(0);
+                        _camera.ImageGrabbed += ProcessFrame;
                     });
 
-                    SetConnectedStatus();
-
+                    SetConnectedStatus("connect");
+                    Recognizer.Enabled = true;
+                    Snipshot.Enabled = true;
+                    logbox.Text = $"---------- Program is Connected ----------{Environment.NewLine}";
+                    logbox.TextAlign = HorizontalAlignment.Center;
                 }
                 else
                 {
-                    if (_videoCapture != null)
-                    {
-                        _videoCapture.Pause();
-                        _videoCapture.Dispose();
-                        SetDisconnectedStatus();
-                    }
+                    _camera?.Pause();
+                    _camera?.Dispose();
+                    SetConnectedStatus("disconnect");
+                    Recognizer.Enabled = false;
+                    Recognizer.Checked = false;
+                    Snipshot.Enabled = false;
+                    Snipshot.Checked = false;
+                    logbox.Text = $"---------- Program is Disconnect ----------{Environment.NewLine}";
                 }
             }
-            catch (NullReferenceException excpt)
+            catch (Exception ex)
             {
-                MessageBox.Show(excpt.Message);
+                MessageBox.Show(ex.Message);
             }
         }
 
-        private void Start_Click(object sender, EventArgs e)
+        private async void Start_Click(object sender, EventArgs e)
         {
-            if (_videoCapture != null)
+            if (_camera == null) return;
+
+            if (Snipshot.Checked && string.IsNullOrEmpty(selectedFolderPath))
             {
-                recStatus.Text = "Waiting...";
-                if (!isRecord)
+                MessageBox.Show("กรุณาเลือกโฟลเดอร์สำหรับบันทึกภาพก่อนการจับภาพ", "Error", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                return;
+            }
+
+            recStatus.Text = "WAITING...";
+            recStatus.BackColor = Color.Cyan;
+            recStatus.ForeColor = Color.Black;
+
+            if (isRecord)
+            {
+                await Task.Run(() => _camera.Stop());
+                SetRecordingStatus("pause");
+                ToggleControls(true);
+                logbox.Text += $"---------- Stop Recond ----------{Environment.NewLine}";
+                snapshotTimer.Stop(); // หยุดจับภาพเมื่อ Pause
+            }
+            else
+            {
+                await Task.Run(() => _camera.Start());
+                SetRecordingStatus("record");
+                logbox.Text = $"---------- Start Reconding ----------{Environment.NewLine}";
+                ToggleControls(false);
+
+                // เริ่มจับภาพเฉพาะเมื่อ Snipshot ถูกเลือก
+                if (Snipshot.Checked)
                 {
-                    _videoCapture.Start();
-                    SetRecordingStatus();
-                }
-                else
-                {
-                    _videoCapture.Stop();
-                    SetStoppedRecordingStatus();
+                    UpdateSnapshotTimer();
                 }
             }
         }
 
-        private void FlipHor_Click(object sender, EventArgs e)
-        {
-            if (_videoCapture != null)
-            {
-                _videoCapture.FlipHorizontal = !_videoCapture.FlipHorizontal;
-            }
-        }
 
-        private void FlipVer_Click(object sender, EventArgs e)
-        {
-            if (_videoCapture != null)
-            {
-                _videoCapture.FlipVertical = !_videoCapture.FlipVertical;
-            }
-        }
+        #endregion
 
+        #region Time
         private void timer1_Tick(object sender, EventArgs e)
         {
             string formatClock = "HH:mm:ss";
@@ -197,46 +189,123 @@ namespace openCV
             time.Text = dateTime.ToString(formatClock);
             dateset.Text = dateTime.ToString(formatDate);
         }
+        #endregion
 
         #region Status
-        private void SetConnectedStatus()
+        private void SetConnectedStatus(string status)
         {
-            this.Connect.Text = "Disconnect";
-            camStatus.Text = "Connected";
-            this.Start.Enabled = true;
-            isCameraConnected = true;
+            bool isConnected = status == "connect";
 
-            Image<Bgr, byte> image = new Image<Bgr, byte>(@"Image\Connect.jpg");
-            imageBoxLive.Image = image;
+            Connect.Text = isConnected ? "DISCONNECT" : "CONNECT";
+            camStatus.Text = isConnected ? "CONNECT" : "DISCONNECT";
+
+            camStatus.BackColor = isConnected ? Color.Green : Color.Red;
+            camStatus.ForeColor = Color.White;
+
+            Start.Enabled = isConnected;
+
+            isCameraConnected = isConnected;
+
         }
 
-        private void SetDisconnectedStatus()
+        private void SetRecordingStatus(string status)
         {
-            this.Connect.Text = "Connect";
-            camStatus.Text = "Disconnected";
-            this.Start.Enabled = false;
-            isCameraConnected = false;
+            bool isRecording = status == "record";
 
-            Image<Bgr, byte> image = new Image<Bgr, byte>(@"Image\Disconnect.jpg");
-            imageBoxLive.Image = image;
+            recStatus.Text = isRecording ? "Recording" : "Pause";
+            recStatus.BackColor = isRecording ? Color.Green : Color.Red;
+            recStatus.ForeColor = Color.White;
+
+            Connect.Enabled = !isRecording;
+            Start.Text = isRecording ? "Pause" : "Start";
+
+            isRecord = isRecording;
+
         }
-
-        private void SetRecordingStatus()
+        private void ToggleControls(bool enable)
         {
-            recStatus.Text = "Recording";
-            this.Connect.Enabled = false;
-            this.Start.Text = "Stop";
-            isRecord = true;
-        }
-
-        private void SetStoppedRecordingStatus()
-        {
-            recStatus.Text = "Stopped";
-            this.Connect.Enabled = true;
-            this.Start.Text = "Start";
-            isRecord = false;
+            Browse.Enabled = enable;
+            Snipshot.Enabled = enable;
+            Recognizer.Enabled = enable;
+            sectime.Enabled = enable;
         }
         #endregion
+
+        #region Browse_Click
+        private void Browse_Click(object sender, EventArgs e)
+        {
+            // ใช้ FolderBrowserDialog เพื่อเลือกโฟลเดอร์
+            using (FolderBrowserDialog folderDialog = new FolderBrowserDialog())
+            {
+                // ถ้าเลือกโฟลเดอร์แล้ว
+                if (folderDialog.ShowDialog() == DialogResult.OK)
+                {
+                    selectedFolderPath = folderDialog.SelectedPath; // เก็บที่อยู่ของโฟลเดอร์ที่เลือก
+                    foldertext.Text = "โฟลเดอร์: " + selectedFolderPath; // แสดงที่อยู่โฟลเดอร์ใน Label (ถ้ามี)
+                }
+            }
+        }
+        #endregion
+
+        #region checklist
+        private void Recognizer_CheckedChanged(object sender, EventArgs e)
+        {
+            if (Recognizer.Checked) // ถ้า Recognizer ถูกติ๊ก
+            {
+                Snipshot.Checked = false;
+            }
+        }
+
+        private void Snipshot_CheckedChanged(object sender, EventArgs e)
+        {
+            if (Snipshot.Checked)
+            {
+                Recognizer.Checked = false;
+                Browse.Enabled = true;
+                snapshotTimer.Stop(); // หยุดจับภาพก่อนกด Start
+            }
+            else
+            {
+                Browse.Enabled = false;
+            }
+        }
+
+        #endregion
+
+
+        private void SaveSnapshot()
+        {
+            // ตรวจสอบว่า pictureBoxGray มีภาพหรือไม่
+            if (pictureBoxGray.Image != null)
+            {
+                // ตั้งชื่อไฟล์ snapshot ตามเวลา
+                string filePath = Path.Combine(selectedFolderPath, $"snapshot_{DateTime.Now:yyyyMMdd_HHmmss}.png");
+                pictureBoxGray.Image.Save(filePath, System.Drawing.Imaging.ImageFormat.Png); // บันทึกภาพ
+
+                // แสดงข้อความใน log box เมื่อบันทึกภาพสำเร็จ
+                logbox.AppendText($"[{DateTime.Now:yyyy-MM-dd HH:mm:ss}] บันทึกภาพสำเร็จ: {filePath}{Environment.NewLine}");
+            }
+            else
+            {
+                // ถ้าไม่มีภาพใน pictureBoxGray
+                logbox.AppendText($"No picture in pictureBoxGray {Environment.NewLine}");
+                
+            }
+        }
+
+        private void UpdateSnapshotTimer()
+        {
+            if (isRecord && Snipshot.Checked) // ตรวจสอบว่ากด Start หรือยัง
+            {
+                snapshotTimer.Interval = (int)sectime.Value * 1000;
+                snapshotTimer.Start();
+            }
+            else
+            {
+                snapshotTimer.Stop();
+            }
+        }
+
 
     }
 }
